@@ -3,38 +3,61 @@ from camera_module import CameraModule
 from yolo_pac import YOLOModule
 from nav import NavigationModule
 
-def main():
-    # Инициализация модулей
-    camera = CameraModule()
-    yolo = YOLOModule("yolo_pac/yolo11n.pt")  # Убедись, что путь к модели правильный
-    nav = NavigationModule()
+# Инициализация модулей
+yolo = YOLOModule("yolo_pac/yolo11n.pt")
+nav = NavigationModule()
 
-    # Открытие камеры
-    cap = cv2.VideoCapture(0)
+# Захват видео с камеры
+cap = cv2.VideoCapture(1)
 
-    while True:
-        ret, frame = cap.read()
-        if not ret:
-            break
+while cap.isOpened():
+    ret, frame = cap.read()
+    if not ret:
+        break
 
-        # Распознавание объектов
-        detections = yolo.detect_objects(frame)
+    frame_width = frame.shape[1]
 
-        # Получение направления движения
-        direction = nav.get_direction(detections, frame.shape[1])
+    # Обнаружение объектов
+    detections = yolo.detect_objects(frame)
 
-        # Отображение результата
-        frame = nav.process_objects(frame, detections)
-        frame = nav.display_direction(frame, direction)
+    # Определение направления
+    direction = nav.get_direction(detections, frame_width)
 
-        cv2.imshow("Navigation System", frame)
+    # Рисуем границы для левой, центральной и правой зоны
+    left_border = frame_width // 3
+    right_border = 2 * (frame_width // 3)
+    cv2.line(frame, (left_border, 0), (left_border, frame.shape[0]), (255, 0, 0), 2)
+    cv2.line(frame, (right_border, 0), (right_border, frame.shape[0]), (255, 0, 0), 2)
 
-        # Выход по клавише 'q'
-        if cv2.waitKey(1) & 0xFF == ord('q'):
-            break
+    # Отображение детекций
+    for obj in detections:
+        label, x1, y1, x2, y2, confidence = obj
 
-    cap.release()
-    cv2.destroyAllWindows()
+        # Рисуем рамку
+        cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
+        cv2.putText(frame, f"{label} ({confidence:.2f})", (x1, y1 - 10),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
 
-if __name__ == "__main__":
-    main()
+        # Вывод координат объекта
+        cv2.putText(frame, f"x min = {x1}", (x1, y1 + 20),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 2)
+        cv2.putText(frame, f"x max = {x2}", (x1, y1 + 40),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 2)
+        cv2.putText(frame, f"y min = {y1}", (x1, y1 + 60),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 2)
+        cv2.putText(frame, f"y max = {y2}", (x1, y1 + 80),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 2)
+
+    # Вывод направления движения
+    cv2.putText(frame, direction, (50, 50), cv2.FONT_HERSHEY_SIMPLEX,
+                1, (0, 255, 0), 3)
+
+    # Отображение кадра
+    cv2.imshow("Navigation System", frame)
+
+    # Выход по 'q'
+    if cv2.waitKey(1) & 0xFF == ord('q'):
+        break
+
+cap.release()
+cv2.destroyAllWindows()
