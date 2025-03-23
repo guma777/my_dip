@@ -1,16 +1,22 @@
 import cv2
+import torch
+from ultralytics import YOLO
 
 class YOLOModule:
     def __init__(self, model_path='yolo_pac/yolo11n.pt'):
-        self.model_path = model_path
-        print(f"Модель YOLO загружена из {self.model_path}")
+        self.model = YOLO(model_path)  # Загружаем модель
+        print(f"Модель YOLO загружена из {model_path}")
 
     def detect_objects(self, frame):
-        # Имитация детекции (замени на реальный код)
-        detections = [
-            ('person', 50, 50, 100, 200, 0.95),
-            ('car', 120, 80, 220, 160, 0.87)  # Исправлены координаты
-        ]
+        results = self.model(frame)  # Запускаем модель на изображении
+
+        detections = []
+        for result in results:
+            for box in result.boxes.data:
+                x_min, y_min, x_max, y_max, confidence, class_id = box.tolist()
+                label = self.model.names[int(class_id)]  # Получаем имя класса
+                detections.append((label, x_min, y_min, x_max, y_max, confidence))
+
         return detections
 
     def draw_boxes(self, frame, detections):
