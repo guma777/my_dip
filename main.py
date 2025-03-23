@@ -8,6 +8,10 @@ camera = CameraModule()
 yolo = YOLOModule("yolo_pac/yolo11n.pt")
 nav = NavigationModule()
 
+# Позволяем окну менять размер и устанавливаем стартовый размер
+cv2.namedWindow("Navigation System", cv2.WINDOW_NORMAL)
+
+
 while True:
     frame = camera.get_frame()
     if frame is None:
